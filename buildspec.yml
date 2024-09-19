@@ -1,0 +1,30 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region us-west-1 | docker login --username AWS --password-stdin 489994096722.dkr.ecr.us-west-1.amazonaws.com
+  build:
+    commands:
+      - echo Build started on `date`
+      - echo Building the Docker image...
+      - docker build -t rman-nginix .
+      - docker tag rman-nginix:latest 489994096722.dkr.ecr.us-west-1.amazonaws.com/rman-nginix:latest
+  post_build: 
+    commands:
+      - echo Build completed on `date`
+      - echo Pushing the Docker image...
+      - aws ecr get-login-password --region us-west-1 | docker login --username AWS --password-stdin $ecr_repository
+      - if [ $? -ne 0 ]; then echo "Docker login for push failed"; exit 1; fi
+      - docker push 489994096722.dkr.ecr.us-west-1.amazonaws.com/rman-nginix:latest
+      - if [ $? -ne 0 ]; then echo "Docker push failed"; exit 1; fi
+      - echo Creating imagedefinitions.json file...
+      - printf '[{"name":"terraform-container","imageUri":"489994096722.dkr.ecr.us-west-1.amazonaws.com/rman-nginix"}]'  > imagedefinitions.json
+artifacts:
+  files:
+    - '**/*'
+    - imagedefinitions.json
+    
+    
+    
